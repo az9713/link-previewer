@@ -372,43 +372,95 @@ class UnfurlRequest(BaseModel):
 
 ```python
 class UnfurlData(BaseModel):
-    url: str
-    title: Optional[str] = None
-    description: Optional[str] = None
-    image: Optional[str] = None
-    site_name: Optional[str] = None
+    # Basic metadata (most commonly used)
+    url: str                              # The original URL (echoed back)
+    title: Optional[str] = None           # Page title
+    description: Optional[str] = None     # Page description
+    image: Optional[str] = None           # Preview image URL
+    site_name: Optional[str] = None       # Website name
+
+    # Content type information
+    type: Optional[str] = None            # og:type (website, article, video, etc.)
+    locale: Optional[str] = None          # og:locale (en_US, etc.)
+
+    # Authorship
+    author: Optional[str] = None          # Content author
+    publisher: Optional[str] = None       # Publisher name
+
+    # Timestamps
+    published_time: Optional[str] = None  # When content was published
+    modified_time: Optional[str] = None   # When content was last modified
+
+    # Media (for video/audio content)
+    video_url: Optional[str] = None       # Direct video URL
+    audio_url: Optional[str] = None       # Direct audio URL
+    duration: Optional[str] = None        # Media duration in seconds
+
+    # Social/Twitter specific
+    twitter_handle: Optional[str] = None  # @username of content creator
+    twitter_card: Optional[str] = None    # Twitter card type
+
+    # Technical metadata
+    canonical_url: Optional[str] = None   # Canonical URL
+    favicon: Optional[str] = None         # Site icon URL
+    theme_color: Optional[str] = None     # Brand/theme color
+    keywords: Optional[List[str]] = None  # Page keywords as list
 ```
+
+**Field Categories Explained:**
+
+| Category | Fields | Purpose |
+|----------|--------|---------|
+| **Basic** | url, title, description, image, site_name | Core preview data |
+| **Content Type** | type, locale | What kind of content, what language |
+| **Authorship** | author, publisher | Who created/published it |
+| **Timestamps** | published_time, modified_time | When it was created/updated |
+| **Media** | video_url, audio_url, duration | For video/audio content |
+| **Social** | twitter_handle, twitter_card | Twitter-specific metadata |
+| **Technical** | canonical_url, favicon, theme_color, keywords | SEO and branding |
 
 **Why all fields are Optional:**
 
 Not every webpage has all metadata:
 - A minimal HTML page might only have a `<title>`
 - Some pages have no Open Graph tags
-- Images are often missing
+- Video fields only exist on video pages
+- Keywords are often omitted on modern sites
 
 We use `Optional[str] = None` so we can return partial data:
 
 ```python
-# Page with everything
+# YouTube video - has video-specific fields
 UnfurlData(
-    url="https://example.com",
-    title="Example",
-    description="A page",
-    image="https://example.com/img.png",
-    site_name="Example Site"
+    url="https://youtube.com/watch?v=...",
+    title="My Video",
+    description="A great video",
+    image="https://i.ytimg.com/vi/.../maxresdefault.jpg",
+    site_name="YouTube",
+    type="video.other",
+    video_url="https://youtube.com/embed/...",
+    twitter_card="player",
+    twitter_handle="@YouTube"
 )
 
-# Page with just title
+# Simple blog post - minimal fields
 UnfurlData(
-    url="https://example.com",
-    title="Example"
-    # description, image, site_name all default to None
+    url="https://example.com/post",
+    title="Blog Post",
+    description="My thoughts",
+    author="John Doe",
+    published_time="2024-01-15T10:00:00Z"
+    # Most other fields default to None
 )
 ```
 
 **Why url is str, not HttpUrl:**
 
 We echo back the original URL as a plain string. It was already validated in UnfurlRequest, so we do not need to re-validate.
+
+**Why keywords is a List:**
+
+Keywords in HTML are comma-separated: `<meta name="keywords" content="python, api, tutorial">`. We parse this into a proper list: `["python", "api", "tutorial"]` for easier handling.
 
 ### UnfurlResponse - The API Response
 

@@ -517,7 +517,7 @@ def extract_meta_tag(soup: BeautifulSoup, property_name: str) -> Optional[str]:
 
 ### Extraction Functions
 
-Each extractor follows the same pattern:
+Each extractor follows the same pattern - try multiple sources with fallback:
 
 ```python
 def extract_title(soup: BeautifulSoup) -> Optional[str]:
@@ -539,9 +539,35 @@ def extract_title(soup: BeautifulSoup) -> Optional[str]:
     return None
 ```
 
+### All Extraction Functions
+
+We have extraction functions for many types of metadata:
+
+| Function | Fields Extracted | Source Tags |
+|----------|-----------------|-------------|
+| `extract_title()` | title | og:title, twitter:title, `<title>` |
+| `extract_description()` | description | og:description, twitter:description, description |
+| `extract_image()` | image | og:image, twitter:image |
+| `extract_site_name()` | site_name | og:site_name |
+| `extract_type()` | type | og:type |
+| `extract_locale()` | locale | og:locale |
+| `extract_author()` | author | article:author, author |
+| `extract_publisher()` | publisher | article:publisher, publisher |
+| `extract_published_time()` | published_time | article:published_time, og:published_time, date |
+| `extract_modified_time()` | modified_time | article:modified_time, og:updated_time |
+| `extract_video_url()` | video_url | og:video:url, og:video, og:video:secure_url |
+| `extract_audio_url()` | audio_url | og:audio:url, og:audio |
+| `extract_duration()` | duration | og:video:duration, video:duration |
+| `extract_twitter_handle()` | twitter_handle | twitter:creator, twitter:site |
+| `extract_twitter_card()` | twitter_card | twitter:card |
+| `extract_canonical_url()` | canonical_url | `<link rel="canonical">`, og:url |
+| `extract_favicon()` | favicon | `<link rel="icon">`, `<link rel="shortcut icon">` |
+| `extract_theme_color()` | theme_color | theme-color |
+| `extract_keywords()` | keywords | keywords (parsed into list) |
+
 ### Handling Relative URLs
 
-Images might have relative URLs:
+URLs for images, videos, and favicons might be relative:
 
 ```html
 <!-- Absolute URL - ready to use -->
@@ -551,7 +577,7 @@ Images might have relative URLs:
 <meta property="og:image" content="/images/preview.png">
 ```
 
-We convert relative to absolute:
+We convert relative to absolute using `urljoin`:
 
 ```python
 from urllib.parse import urljoin
@@ -576,6 +602,21 @@ urljoin("https://example.com/blog/post", "../images/pic.png")
 # → "https://example.com/images/pic.png"
 ```
 
+### Parsing Keywords into a List
+
+Keywords are comma-separated in HTML but we want a proper list:
+
+```python
+def extract_keywords(soup: BeautifulSoup) -> Optional[List[str]]:
+    keywords_str = extract_meta_tag(soup, "keywords")
+    if keywords_str:
+        # "python, api, tutorial" → ["python", "api", "tutorial"]
+        keywords = [k.strip() for k in keywords_str.split(",")]
+        keywords = [k for k in keywords if k]  # Remove empty strings
+        return keywords if keywords else None
+    return None
+```
+
 ### parse_html() Function
 
 Orchestrates all extraction:
@@ -589,11 +630,39 @@ def parse_html(html: str, url: str) -> UnfurlData:
         soup = BeautifulSoup(html, "html.parser")
 
     return UnfurlData(
+        # Basic metadata
         url=url,
         title=extract_title(soup),
         description=extract_description(soup),
         image=extract_image(soup, url),
         site_name=extract_site_name(soup),
+
+        # Content type
+        type=extract_type(soup),
+        locale=extract_locale(soup),
+
+        # Authorship
+        author=extract_author(soup),
+        publisher=extract_publisher(soup),
+
+        # Timestamps
+        published_time=extract_published_time(soup),
+        modified_time=extract_modified_time(soup),
+
+        # Media
+        video_url=extract_video_url(soup, url),
+        audio_url=extract_audio_url(soup, url),
+        duration=extract_duration(soup),
+
+        # Social/Twitter
+        twitter_handle=extract_twitter_handle(soup),
+        twitter_card=extract_twitter_card(soup),
+
+        # Technical
+        canonical_url=extract_canonical_url(soup),
+        favicon=extract_favicon(soup, url),
+        theme_color=extract_theme_color(soup),
+        keywords=extract_keywords(soup),
     )
 ```
 

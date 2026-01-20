@@ -14,7 +14,8 @@ The extraction priority order is:
 
 import httpx
 from bs4 import BeautifulSoup
-from typing import Optional
+from typing import Optional, List
+from urllib.parse import urljoin
 from .models import UnfurlData
 
 
@@ -106,12 +107,6 @@ def extract_title(soup: BeautifulSoup) -> Optional[str]:
     1. og:title (Open Graph)
     2. twitter:title (Twitter Card)
     3. <title> tag (HTML standard)
-
-    Args:
-        soup: BeautifulSoup parsed HTML
-
-    Returns:
-        The title string, or None if not found
     """
     # Try Open Graph title
     title = extract_meta_tag(soup, "og:title")
@@ -139,12 +134,6 @@ def extract_description(soup: BeautifulSoup) -> Optional[str]:
     1. og:description (Open Graph)
     2. twitter:description (Twitter Card)
     3. <meta name="description"> (HTML standard)
-
-    Args:
-        soup: BeautifulSoup parsed HTML
-
-    Returns:
-        The description string, or None if not found
     """
     # Try Open Graph description
     description = extract_meta_tag(soup, "og:description")
@@ -173,20 +162,10 @@ def extract_image(soup: BeautifulSoup, base_url: str) -> Optional[str]:
     2. twitter:image (Twitter Card)
 
     Handles relative URLs by converting them to absolute URLs.
-
-    Args:
-        soup: BeautifulSoup parsed HTML
-        base_url: The original page URL for resolving relative paths
-
-    Returns:
-        The absolute image URL, or None if not found
     """
-    from urllib.parse import urljoin
-
     # Try Open Graph image
     image = extract_meta_tag(soup, "og:image")
     if image:
-        # Convert relative URL to absolute
         return urljoin(base_url, image)
 
     # Try Twitter image
@@ -198,16 +177,197 @@ def extract_image(soup: BeautifulSoup, base_url: str) -> Optional[str]:
 
 
 def extract_site_name(soup: BeautifulSoup) -> Optional[str]:
-    """
-    Extract site name from Open Graph tags.
-
-    Args:
-        soup: BeautifulSoup parsed HTML
-
-    Returns:
-        The site name, or None if not found
-    """
+    """Extract site name from Open Graph tags."""
     return extract_meta_tag(soup, "og:site_name")
+
+
+def extract_type(soup: BeautifulSoup) -> Optional[str]:
+    """Extract content type (website, article, video, etc.)."""
+    return extract_meta_tag(soup, "og:type")
+
+
+def extract_locale(soup: BeautifulSoup) -> Optional[str]:
+    """Extract locale/language setting."""
+    return extract_meta_tag(soup, "og:locale")
+
+
+def extract_author(soup: BeautifulSoup) -> Optional[str]:
+    """
+    Extract author with fallback chain.
+
+    Priority:
+    1. article:author (Open Graph)
+    2. author meta tag
+    3. twitter:creator (without @)
+    """
+    author = extract_meta_tag(soup, "article:author")
+    if author:
+        return author
+
+    author = extract_meta_tag(soup, "author")
+    if author:
+        return author
+
+    return None
+
+
+def extract_publisher(soup: BeautifulSoup) -> Optional[str]:
+    """Extract publisher name."""
+    publisher = extract_meta_tag(soup, "article:publisher")
+    if publisher:
+        return publisher
+
+    publisher = extract_meta_tag(soup, "publisher")
+    if publisher:
+        return publisher
+
+    return None
+
+
+def extract_published_time(soup: BeautifulSoup) -> Optional[str]:
+    """Extract publication timestamp."""
+    time = extract_meta_tag(soup, "article:published_time")
+    if time:
+        return time
+
+    time = extract_meta_tag(soup, "og:published_time")
+    if time:
+        return time
+
+    time = extract_meta_tag(soup, "date")
+    if time:
+        return time
+
+    return None
+
+
+def extract_modified_time(soup: BeautifulSoup) -> Optional[str]:
+    """Extract last modified timestamp."""
+    time = extract_meta_tag(soup, "article:modified_time")
+    if time:
+        return time
+
+    time = extract_meta_tag(soup, "og:updated_time")
+    if time:
+        return time
+
+    return None
+
+
+def extract_video_url(soup: BeautifulSoup, base_url: str) -> Optional[str]:
+    """Extract video URL for video content."""
+    video = extract_meta_tag(soup, "og:video:url")
+    if video:
+        return urljoin(base_url, video)
+
+    video = extract_meta_tag(soup, "og:video")
+    if video:
+        return urljoin(base_url, video)
+
+    video = extract_meta_tag(soup, "og:video:secure_url")
+    if video:
+        return urljoin(base_url, video)
+
+    return None
+
+
+def extract_audio_url(soup: BeautifulSoup, base_url: str) -> Optional[str]:
+    """Extract audio URL for audio content."""
+    audio = extract_meta_tag(soup, "og:audio:url")
+    if audio:
+        return urljoin(base_url, audio)
+
+    audio = extract_meta_tag(soup, "og:audio")
+    if audio:
+        return urljoin(base_url, audio)
+
+    return None
+
+
+def extract_duration(soup: BeautifulSoup) -> Optional[str]:
+    """Extract media duration in seconds."""
+    duration = extract_meta_tag(soup, "og:video:duration")
+    if duration:
+        return duration
+
+    duration = extract_meta_tag(soup, "video:duration")
+    if duration:
+        return duration
+
+    return None
+
+
+def extract_twitter_handle(soup: BeautifulSoup) -> Optional[str]:
+    """Extract Twitter handle of content creator."""
+    handle = extract_meta_tag(soup, "twitter:creator")
+    if handle:
+        return handle
+
+    handle = extract_meta_tag(soup, "twitter:site")
+    if handle:
+        return handle
+
+    return None
+
+
+def extract_twitter_card(soup: BeautifulSoup) -> Optional[str]:
+    """Extract Twitter card type."""
+    return extract_meta_tag(soup, "twitter:card")
+
+
+def extract_canonical_url(soup: BeautifulSoup) -> Optional[str]:
+    """Extract canonical URL from link tag."""
+    link = soup.find("link", rel="canonical")
+    if link and link.get("href"):
+        return link["href"]
+
+    canonical = extract_meta_tag(soup, "og:url")
+    if canonical:
+        return canonical
+
+    return None
+
+
+def extract_favicon(soup: BeautifulSoup, base_url: str) -> Optional[str]:
+    """
+    Extract favicon URL.
+
+    Tries multiple common favicon link relations.
+    """
+    # Try various rel values for favicons
+    for rel in ["icon", "shortcut icon", "apple-touch-icon"]:
+        link = soup.find("link", rel=rel)
+        if link and link.get("href"):
+            return urljoin(base_url, link["href"])
+
+    # Try array-style rel attribute
+    link = soup.find("link", rel=lambda x: x and "icon" in x if isinstance(x, list) else x == "icon")
+    if link and link.get("href"):
+        return urljoin(base_url, link["href"])
+
+    return None
+
+
+def extract_theme_color(soup: BeautifulSoup) -> Optional[str]:
+    """Extract theme/brand color."""
+    return extract_meta_tag(soup, "theme-color")
+
+
+def extract_keywords(soup: BeautifulSoup) -> Optional[List[str]]:
+    """
+    Extract keywords as a list.
+
+    Keywords are typically comma-separated in the meta tag.
+    """
+    keywords_str = extract_meta_tag(soup, "keywords")
+    if keywords_str:
+        # Split by comma and clean up whitespace
+        keywords = [k.strip() for k in keywords_str.split(",")]
+        # Filter out empty strings
+        keywords = [k for k in keywords if k]
+        return keywords if keywords else None
+
+    return None
 
 
 def parse_html(html: str, url: str) -> UnfurlData:
@@ -231,11 +391,39 @@ def parse_html(html: str, url: str) -> UnfurlData:
         soup = BeautifulSoup(html, "html.parser")
 
     return UnfurlData(
+        # Basic metadata
         url=url,
         title=extract_title(soup),
         description=extract_description(soup),
         image=extract_image(soup, url),
         site_name=extract_site_name(soup),
+
+        # Content type
+        type=extract_type(soup),
+        locale=extract_locale(soup),
+
+        # Authorship
+        author=extract_author(soup),
+        publisher=extract_publisher(soup),
+
+        # Timestamps
+        published_time=extract_published_time(soup),
+        modified_time=extract_modified_time(soup),
+
+        # Media
+        video_url=extract_video_url(soup, url),
+        audio_url=extract_audio_url(soup, url),
+        duration=extract_duration(soup),
+
+        # Social/Twitter
+        twitter_handle=extract_twitter_handle(soup),
+        twitter_card=extract_twitter_card(soup),
+
+        # Technical
+        canonical_url=extract_canonical_url(soup),
+        favicon=extract_favicon(soup, url),
+        theme_color=extract_theme_color(soup),
+        keywords=extract_keywords(soup),
     )
 
 
