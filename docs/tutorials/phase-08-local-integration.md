@@ -142,27 +142,69 @@ Try these URLs to test different scenarios:
 
 ## 3. Understanding the Proxy
 
-### Why We Need a Proxy
+### The Problem: Browsers Block Cross-Origin Requests
 
-Browsers enforce the **Same-Origin Policy**:
+When you run the app locally, you have two servers:
 
 ```
-Frontend: http://localhost:5173
-Backend:  http://localhost:8000
-
-Different ports = Different origins = CORS blocked!
+Your browser opens:      http://localhost:5173  (frontend)
+Your API runs at:        http://localhost:8000  (backend)
 ```
 
-Without a proxy, the browser would block API requests:
+Even though both are on "localhost", the **different port numbers** make them different "origins" in the browser's eyes.
+
+Browsers have a security feature called the **Same-Origin Policy**. It blocks web pages from making requests to different origins. This prevents malicious websites from stealing your data from other sites.
+
+Without any solution, you'd see this error:
 
 ```
 Access to fetch at 'http://localhost:8000/unfurl' from origin
 'http://localhost:5173' has been blocked by CORS policy
 ```
 
-### How the Vite Proxy Works
+### The Solution: A Middleman (Proxy)
 
-In `vite.config.js`:
+A proxy is a middleman that forwards requests. Here's the difference:
+
+**Without proxy - BLOCKED:**
+```
+┌─────────────┐                           ┌─────────────┐
+│   Browser   │ ─────── BLOCKED! ───────→ │   Backend   │
+│             │                           │             │
+│ localhost:  │   Browser says: "Nope,    │ localhost:  │
+│    5173     │   different origin!"      │    8000     │
+└─────────────┘                           └─────────────┘
+```
+
+**With proxy - WORKS:**
+```
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│   Browser   │ ───→ │ Vite Server │ ───→ │   Backend   │
+│             │      │ (middleman) │      │             │
+│ localhost:  │      │ localhost:  │      │ localhost:  │
+│    5173     │      │    5173     │      │    8000     │
+└─────────────┘      └─────────────┘      └─────────────┘
+                            ↑
+                    Browser thinks it's
+                    talking to :5173
+                    (same origin = allowed!)
+```
+
+### How It Works in Plain English
+
+1. Your React code asks for `/api/unfurl`
+2. The request goes to the Vite dev server (port 5173)
+3. Vite sees the `/api` prefix and thinks: "I should forward this!"
+4. Vite sends the request to the backend (port 8000)
+5. The backend responds to Vite
+6. Vite passes the response back to your browser
+7. Your browser is happy - it thinks everything stayed on port 5173
+
+**The browser never knows about port 8000.** As far as it's concerned, everything is same-origin.
+
+### The Configuration
+
+This magic is configured in `frontend/vite.config.js`:
 
 ```javascript
 server: {
@@ -176,33 +218,25 @@ server: {
 },
 ```
 
-**The flow:**
+**What each part does:**
+
+| Setting | Meaning |
+|---------|---------|
+| `'/api'` | "Intercept any request starting with /api" |
+| `target` | "Forward it to this server" |
+| `changeOrigin` | "Pretend the request came from the target" |
+| `rewrite` | "Remove the /api prefix before forwarding" |
+
+### Why Remove the `/api` Prefix?
+
+The frontend uses `/api/unfurl` but the backend endpoint is just `/unfurl`.
+
+The `/api` prefix is only used to tell Vite "this should be proxied." The backend doesn't need it.
 
 ```
-1. Frontend code calls: fetch('/api/unfurl', ...)
-
-2. Vite dev server intercepts: "This matches /api"
-
-3. Vite rewrites URL:
-   /api/unfurl → /unfurl  (removes /api prefix)
-
-4. Vite forwards to: http://localhost:8000/unfurl
-
-5. Backend responds to Vite
-
-6. Vite returns response to frontend
-
-7. Browser sees same-origin request (localhost:5173 → localhost:5173)
-```
-
-### Proxy Configuration Explained
-
-```javascript
-'/api': {                    // Match URLs starting with /api
-  target: 'http://localhost:8000',  // Forward to backend
-  changeOrigin: true,        // Change Origin header to target
-  rewrite: (path) => path.replace(/^\/api/, ''),  // Remove /api prefix
-}
+Frontend calls:     /api/unfurl
+Vite removes /api:  /unfurl
+Backend receives:   /unfurl  ✓
 ```
 
 **Example transformations:**
@@ -212,6 +246,33 @@ server: {
 | `/api/unfurl` | `/unfurl` |
 | `/api/health` | `/health` |
 | `/api/docs` | `/docs` |
+
+### The Complete Journey of a Request
+
+```
+1. You click "Preview" in the browser
+
+2. React code runs: fetch('/api/unfurl', { body: {url: '...'} })
+
+3. Browser sends request to: http://localhost:5173/api/unfurl
+   (same origin as the page - allowed!)
+
+4. Vite dev server receives the request
+   - Sees it starts with '/api'
+   - Removes '/api' prefix → '/unfurl'
+   - Forwards to http://localhost:8000/unfurl
+
+5. Backend processes the request
+   - Fetches the URL
+   - Extracts metadata
+   - Returns JSON response
+
+6. Vite receives the backend's response
+
+7. Vite sends the response back to the browser
+
+8. React updates the UI with the preview card
+```
 
 ---
 
