@@ -721,13 +721,85 @@ Without timeouts, a slow server could keep your connection open forever.
 
 ### User-Agent Identification
 
-Be a good citizen - identify your bot:
+Every HTTP request includes a `User-Agent` header that tells the server what's making the request:
+
+```
+Browser:        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"
+Googlebot:      "Googlebot/2.1 (+http://www.google.com/bot.html)"
+Our app:        "Mozilla/5.0 (compatible; LinkPreviewer/1.0)"
+```
+
+### Why Websites Care About User-Agent
+
+Websites use User-Agent to decide:
+
+| Decision | Example |
+|----------|---------|
+| **Content to serve** | Mobile vs desktop layout |
+| **Caching behavior** | Bots get stale data, humans get fresh |
+| **Rate limiting** | Bots get stricter request limits |
+| **Access control** | Some sites block known scrapers |
+
+### The Etiquette Question: Honest vs Sneaky
+
+**Approach 1: Honest Bot Identification (Recommended)**
 
 ```python
 USER_AGENT = "Mozilla/5.0 (compatible; LinkPreviewer/1.0; +https://yoursite.com)"
 ```
 
-This lets site owners know who's making requests and how to contact you.
+This honestly says: "I'm a bot called LinkPreviewer."
+
+| Pros | Cons |
+|------|------|
+| Transparent and ethical | May get cached/stale data |
+| Site admins can identify you | May get blocked by some sites |
+| They can contact you if issues | Stricter rate limits |
+| Respects their bot policies | |
+
+**Approach 2: Pretend to be a Browser (Not Recommended)**
+
+```python
+# Mimics a real Chrome browser
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+```
+
+| Pros | Cons |
+|------|------|
+| Gets fresh data | Deceptive |
+| Rarely blocked | May violate Terms of Service |
+| Same experience as users | Could get IP banned if detected |
+
+### Real-World Example
+
+When testing our Link Previewer against GitHub, you might notice:
+
+```
+Our app returns:     "az9713 has 81 repositories"
+Browser shows:       "az9713 has 88 repositories"
+```
+
+GitHub serves cached metadata to bots but fresh data to browsers. This is intentional - it reduces server load from automated tools.
+
+### What Major Services Do
+
+| Service | Approach |
+|---------|----------|
+| Slack, Discord | Honest bot User-Agent |
+| Googlebot, Bingbot | Honest bot User-Agent |
+| Many web scrapers | Fake browser User-Agent |
+
+### Our Choice
+
+We use the honest approach:
+
+```python
+USER_AGENT = "Mozilla/5.0 (compatible; LinkPreviewer/1.0)"
+```
+
+Why? The slight data staleness is acceptable for link previews. If we needed 100% accurate data, we'd use official APIs (like GitHub's REST API) instead of scraping meta tags.
+
+**Rule of thumb:** Be honest about what you are. If a site blocks bots, respect that decision rather than circumventing it.
 
 ---
 
