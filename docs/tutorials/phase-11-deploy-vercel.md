@@ -40,7 +40,7 @@ Serve Phase:
 
 ### Static vs Dynamic Hosting
 
-| Static (Vercel, Netlify) | Dynamic (Railway, Heroku) |
+| Static (Vercel, Netlify) | Dynamic (Render, Railway) |
 |--------------------------|---------------------------|
 | Pre-built files | Code runs on every request |
 | No server processing | Server processes requests |
@@ -105,7 +105,7 @@ For static sites, CDNs provide:
 
 ### The Critical Difference
 
-**Runtime variables (Backend - Railway):**
+**Runtime variables (Backend - Render):**
 - Read when code executes
 - Can change without rebuilding
 - Secrets are safe (never sent to browser)
@@ -126,7 +126,7 @@ const apiUrl = import.meta.env.VITE_API_URL;
 // with the actual value
 
 // Becomes:
-const apiUrl = "https://your-api.up.railway.app";
+const apiUrl = "https://your-api.onrender.com";
 ```
 
 ### Security Implications
@@ -147,83 +147,215 @@ VITE_DATABASE_PASSWORD=secret            ✗ NEVER (secrets go in backend only)
 Before deploying, ensure you have:
 
 - [ ] GitHub account with your code pushed
-- [ ] Backend deployed on Railway (from Phase 10)
-- [ ] Your Railway API URL (e.g., `https://your-app.up.railway.app`)
+- [ ] Backend deployed on Render (from Phase 10)
+- [ ] Your Render API URL (e.g., `https://your-app.onrender.com`)
 - [ ] A Vercel account (we'll create this)
 
 ---
 
-## 5. Creating a Vercel Account
+## 5. Step-by-Step Deployment
 
-### Step 1: Sign Up
+### Step 1: Create Vercel Account
 
-1. Go to https://vercel.com
-2. Click **"Sign Up"**
-3. Choose **"Continue with GitHub"** (recommended)
+**Option A: Sign up with GitHub (Recommended)**
+1. Go to **https://vercel.com**
+2. Click **"Sign Up"** (top right)
+3. Click **"Continue with GitHub"**
 4. Authorize Vercel to access your GitHub
+5. You're logged in!
 
-### Step 2: Understand Free Tier
+**Option B: Sign up with Email**
+1. Go to **https://vercel.com**
+2. Click **"Sign Up"** (top right)
+3. Enter your email address
+4. Check email for 6-digit verification code
+5. Enter the code to complete signup
+6. **Important:** When asked about your plan, select **"I'm working on personal projects"** to get the free Hobby tier
+7. You may be asked to enter your name - fill in your preferred display name
 
-Vercel's free tier includes:
-- **100 GB bandwidth** per month
-- **Unlimited** static sites
-- **Serverless functions** (100 GB-hours)
-- **Automatic HTTPS**
-- **Preview deployments** for PRs
+### Step 2: Import Your Project
 
-More than enough for learning and small projects.
+1. From the Vercel dashboard, click **"Add New..."** button
+2. Select **"Project"** from the dropdown
+3. You'll see a list of your GitHub repositories
+4. Find your repository (e.g., `link-previewer`)
+5. Click **"Import"** next to it
+
+**If you don't see your repository:**
+- Click **"Adjust GitHub App Permissions"**
+- Grant Vercel access to the specific repository
+- Return to Vercel and refresh
+
+### Step 3: Configure Project Settings
+
+Vercel shows you the configuration screen. Configure as follows:
+
+**Project Name:**
+- Leave default or customize (this becomes your URL subdomain)
+
+**Framework Preset:**
+- Vercel auto-detects **Vite** - leave as is
+
+**Root Directory:**
+1. Click **"Edit"** next to Root Directory
+2. A file browser dialog will appear showing your repo structure
+3. You'll see folders like `backend`, `docs`, `frontend`
+4. Click on **`frontend`** to select it (it will be highlighted)
+5. Click the **"Continue"** button at the bottom of the dialog
+6. The dialog closes and you'll see "frontend" displayed as the Root Directory
+
+**Build and Output Settings:**
+Usually auto-detected correctly:
+- Build Command: `npm run build`
+- Output Directory: `dist`
+- Install Command: `npm install`
+
+### Step 4: Add Environment Variables
+
+**This is critical!** Your frontend needs to know where the backend is.
+
+1. Scroll down to **"Environment Variables"** section
+2. Click to expand it
+3. Add the following variable:
+
+| Key | Value |
+|-----|-------|
+| `VITE_API_URL` | `https://your-backend.onrender.com` |
+
+**To add the variable:**
+1. Click in the **"Key"** field
+2. Type: `VITE_API_URL`
+3. Click in the **"Value"** field
+4. Type your Render backend URL (e.g., `https://link-previewer-ehwf.onrender.com`)
+5. Leave **"Production"** checkbox checked (default)
+
+**Important:**
+- No trailing slash! ✓ `https://api.onrender.com` ✗ `https://api.onrender.com/`
+- Use your actual Render URL from Phase 10
+- The key must start with `VITE_` for Vite to expose it
+
+**Troubleshooting tip:** If a search popup appears while typing, press **Escape** to close it and make sure you're clicking directly in the input field (not elsewhere on the page)
+
+### Step 5: Deploy
+
+1. Click the **"Deploy"** button
+2. Watch the build progress:
+   - Cloning repository...
+   - Installing dependencies...
+   - Building...
+   - Deploying...
+3. Wait for **"Congratulations!"** message (about 1-2 minutes)
+4. Click **"Continue to Dashboard"** or **"Visit"** to see your site
+
+### Step 6: Get Your Frontend URL
+
+Your frontend URL is displayed at the top of the project dashboard:
+```
+https://your-project-name.vercel.app
+```
+
+Example: `https://link-previewer-smoky.vercel.app`
+
+**Save this URL!** You'll need it for the next step.
 
 ---
 
-## 6. Deploying the Frontend
+## 6. Configure Backend CORS (Critical!)
 
-### Step 1: Import Project
+### The Problem
 
-1. From Vercel dashboard, click **"Add New..."** → **"Project"**
-2. Click **"Import"** next to your GitHub repository
-3. Vercel detects it's a Vite project
+Right now:
+- Frontend: `https://your-app.vercel.app`
+- Backend: `https://your-backend.onrender.com`
 
-### Step 2: Configure Project
-
-Vercel shows you configuration options:
-
-**Framework Preset:** `Vite` (auto-detected)
-
-**Root Directory:** Click **"Edit"** and select `frontend`
-
-**Build Settings:**
-```
-Build Command: npm run build
-Output Directory: dist
-Install Command: npm install
+But the backend only allows localhost by default:
+```python
+ALLOWED_ORIGINS = "http://localhost:5173,http://localhost:3000"
 ```
 
-(These are usually auto-detected correctly)
+**Your frontend requests will be blocked by CORS!**
 
-### Step 3: Set Environment Variables
+### The Solution: Add Vercel URL to Render
 
-Click **"Environment Variables"** to add:
+1. Go to **https://dashboard.render.com**
+2. You'll see your projects listed - click on **"My project"** (or your project group name)
+3. Click on your backend service (e.g., `link-previewer`)
+4. Click **"Environment"** in the left sidebar
+5. Click the **"+ Add"** button
+6. Select **"New variable"** from the dropdown
+7. Enter:
+   - **Key:** `ALLOWED_ORIGINS`
+   - **Value:** `https://your-app.vercel.app,http://localhost:5173,http://localhost:3000`
+8. Click **"Save, rebuild, and deploy"**
 
-| Name | Value |
-|------|-------|
-| `VITE_API_URL` | `https://your-backend.up.railway.app` |
+**To verify deployment:**
+- Click **"Events"** in the left sidebar
+- Wait for "Deploy live" status (usually 1-2 minutes)
 
-Replace with your actual Railway URL from Phase 10.
+**Example value:**
+```
+https://link-previewer-smoky.vercel.app,http://localhost:5173,http://localhost:3000
+```
 
-**Important:** No trailing slash!
-- ✓ `https://your-backend.up.railway.app`
-- ✗ `https://your-backend.up.railway.app/`
+**Important notes:**
+- Use your actual Vercel URL
+- No trailing slashes
+- Include localhost URLs for local development
+- Comma-separated, no spaces
 
-### Step 4: Deploy
+### Wait for Redeploy
 
-1. Click **"Deploy"**
-2. Watch the build logs
-3. Wait for "Congratulations!" message
-4. Click **"Visit"** to see your site
+After saving, Render automatically redeploys your backend. Wait for the deployment to complete (check the "Events" tab).
 
 ---
 
-## 7. Understanding Vercel Build Logs
+## 7. Test the Complete Integration
+
+### Test 1: Load the Frontend
+
+1. Open your Vercel URL in a browser
+2. You should see the Link Previewer interface:
+   - Title: "Link Previewer"
+   - URL input field
+   - "Preview" button
+
+### Test 2: Preview a URL
+
+1. Enter a URL: `https://github.com`
+2. Click **"Preview"**
+3. Wait for the response (may take ~50 seconds if backend is cold)
+4. You should see a preview card with:
+   - Site name
+   - Title
+   - Description
+   - Image (if available)
+
+### Test 3: Check for Errors
+
+Open browser DevTools (F12) → Console tab:
+
+**If working:** No errors
+**If CORS error:** You'll see:
+```
+Access to fetch at 'https://...' from origin 'https://...'
+has been blocked by CORS policy
+```
+
+### Test 4: Check Network Tab
+
+Open DevTools → Network tab → Make a request:
+
+**Successful request:**
+- Status: 200
+- Response: JSON with metadata
+
+**Failed request:**
+- Status: CORS error or 503
+- Check backend is running and CORS is configured
+
+---
+
+## 8. Understanding Vercel Build Logs
 
 ### Successful Build
 
@@ -268,194 +400,7 @@ Check for:
 
 ---
 
-## 8. Vercel Project Structure
-
-### Dashboard Overview
-
-```
-Project: link-previewer
-├── Production (main branch)
-│   └── https://link-previewer.vercel.app
-├── Preview (feature branches)
-│   └── https://link-previewer-git-feature-xyz.vercel.app
-└── Settings
-    ├── General
-    ├── Domains
-    ├── Git
-    ├── Functions
-    └── Environment Variables
-```
-
-### Automatic Deployments
-
-| Action | Result |
-|--------|--------|
-| Push to `main` | Production deployment |
-| Push to other branch | Preview deployment |
-| Open Pull Request | Preview deployment + comment with URL |
-| Merge PR to `main` | New production deployment |
-
----
-
-## 9. Custom Domains (Optional)
-
-### Adding a Custom Domain
-
-1. Go to **Settings** → **Domains**
-2. Enter your domain (e.g., `linkpreviewer.com`)
-3. Follow DNS configuration instructions
-
-### Vercel's Free Subdomain
-
-Every project gets:
-- `your-project.vercel.app`
-- HTTPS included
-- No configuration needed
-
-For learning, the free subdomain is perfect.
-
----
-
-## 10. Updating the Backend CORS
-
-### The Problem
-
-After frontend deployment, you have:
-```
-Frontend: https://link-previewer.vercel.app
-Backend:  https://link-previewer.up.railway.app
-```
-
-But the backend currently allows:
-```python
-ALLOWED_ORIGINS = "http://localhost:5173,http://localhost:3000"
-```
-
-CORS will block requests from your Vercel domain!
-
-### The Fix
-
-1. Go to **Railway dashboard**
-2. Select your backend service
-3. Go to **Variables**
-4. Update `ALLOWED_ORIGINS`:
-   ```
-   https://link-previewer.vercel.app,http://localhost:5173
-   ```
-5. Railway auto-redeploys
-
-**Important:** Include both production and localhost for continued local development.
-
----
-
-## 11. Testing the Deployment
-
-### Step 1: Open Your Vercel URL
-
-Navigate to `https://your-project.vercel.app`
-
-You should see the Link Previewer UI.
-
-### Step 2: Test the Full Flow
-
-1. Enter a URL: `https://github.com`
-2. Click **"Preview"**
-3. Should see loading spinner
-4. Should see preview card with GitHub's metadata
-
-### Step 3: Check DevTools
-
-Open browser DevTools (F12) → Network tab:
-
-**Successful request:**
-```
-Name:     unfurl
-Status:   200
-Type:     fetch
-Domain:   your-backend.up.railway.app
-```
-
-**CORS error:**
-```
-Name:     unfurl
-Status:   CORS error
-Console:  Access to fetch... has been blocked by CORS policy
-```
-
-If CORS error, check Railway ALLOWED_ORIGINS includes your Vercel URL.
-
----
-
-## 12. Troubleshooting
-
-### Issue: "Failed to fetch"
-
-**Symptoms:**
-- UI shows error
-- Network tab shows failed request
-
-**Causes:**
-1. **Wrong API URL** - Check `VITE_API_URL` in Vercel
-2. **Backend down** - Check Railway deployment
-3. **CORS error** - Check Railway ALLOWED_ORIGINS
-
-**Debug steps:**
-```
-1. Open: https://your-backend.up.railway.app/health
-   Should return: {"status": "healthy"}
-
-2. Open: https://your-backend.up.railway.app/docs
-   Should show Swagger UI
-
-3. Check Vercel → Settings → Environment Variables
-   VITE_API_URL should match your Railway URL
-```
-
-### Issue: "CORS Policy Error"
-
-**Symptoms:**
-- Console shows CORS error
-- Network tab shows failed preflight
-
-**Fix:**
-1. Copy your Vercel URL
-2. Go to Railway → Variables
-3. Add to ALLOWED_ORIGINS (comma-separated, no trailing slash)
-4. Wait for Railway to redeploy
-5. Refresh your Vercel site
-
-### Issue: "API URL is undefined"
-
-**Symptoms:**
-- Request goes to wrong URL
-- Console shows `undefined/unfurl`
-
-**Cause:** Environment variable not set or misspelled
-
-**Fix:**
-1. Vercel → Settings → Environment Variables
-2. Ensure `VITE_API_URL` (exact spelling)
-3. **Redeploy** after changing (build-time variables!)
-
-### Issue: Build Works Locally but Fails on Vercel
-
-**Common causes:**
-
-1. **Case sensitivity:**
-   - Windows: `App.jsx` = `app.jsx`
-   - Linux (Vercel): `App.jsx` ≠ `app.jsx`
-   - **Fix:** Match exact casing in imports
-
-2. **Missing devDependency:**
-   - Vercel runs `npm install` with `--production` sometimes
-   - **Fix:** Move build tools to `dependencies`
-
-3. **Different Node version:**
-   - **Fix:** Add `"engines": { "node": "20.x" }` to package.json
-
----
-
-## 13. Preview Deployments
+## 9. Preview Deployments
 
 ### What Are Preview Deployments?
 
@@ -474,68 +419,133 @@ fix/cors-bug:       https://app-git-fix-cors-bug.vercel.app
 3. **Automatic** - No extra configuration
 4. **Isolated** - Each PR has its own deployment
 
-### Environment Variables for Previews
+---
 
-Vercel lets you set different variables for:
-- Production (main branch)
-- Preview (other branches)
-- Development (local)
+## 10. Troubleshooting
 
-For most cases, same variables work for all.
+### Issue: "Failed to fetch"
+
+**Symptoms:**
+- UI shows error message
+- Network tab shows failed request
+
+**Causes and fixes:**
+
+1. **Backend is sleeping (503 error)**
+   - Render free tier sleeps after 15 minutes
+   - Visit `/health` endpoint to wake it up
+   - Wait ~50 seconds for cold start
+   - Try again
+
+2. **Wrong API URL**
+   - Go to Vercel → Settings → Environment Variables
+   - Verify `VITE_API_URL` matches your Render URL
+   - **After changing: Redeploy!** (build-time variable)
+
+3. **CORS not configured**
+   - Go to Render → Environment
+   - Add/update `ALLOWED_ORIGINS` with your Vercel URL
+   - Wait for Render to redeploy
+
+### Issue: "CORS Policy Error"
+
+**Symptoms:**
+- Console shows CORS error
+- Network tab shows failed preflight (OPTIONS request)
+
+**Fix:**
+1. Copy your exact Vercel URL (e.g., `https://link-previewer-smoky.vercel.app`)
+2. Go to Render dashboard → your service → Environment
+3. Add environment variable:
+   - Key: `ALLOWED_ORIGINS`
+   - Value: `https://your-app.vercel.app,http://localhost:5173,http://localhost:3000`
+4. Wait for Render to redeploy
+5. Refresh your Vercel site and test again
+
+### Issue: "API URL is undefined"
+
+**Symptoms:**
+- Request goes to wrong URL
+- Console shows `undefined/unfurl`
+
+**Fix:**
+1. Go to Vercel → Settings → Environment Variables
+2. Ensure `VITE_API_URL` is set (exact spelling with underscore)
+3. **Important:** Click "Redeploy" after changing (build-time variables require rebuild)
+
+### Issue: Build Works Locally but Fails on Vercel
+
+**Common causes:**
+
+1. **Case sensitivity:**
+   - Windows: `App.jsx` = `app.jsx`
+   - Linux (Vercel): `App.jsx` ≠ `app.jsx`
+   - **Fix:** Match exact casing in imports
+
+2. **Missing devDependency:**
+   - **Fix:** Move build tools to `dependencies`
+
+3. **Different Node version:**
+   - **Fix:** Add `"engines": { "node": "20.x" }` to package.json
 
 ---
 
-## 14. Deployment Checklist
+## 11. Quick Reference
+
+### Your Deployment Settings
+
+| Setting | Value |
+|---------|-------|
+| Platform | Vercel |
+| Framework | Vite (auto-detected) |
+| Root Directory | `frontend` |
+| Build Command | `npm run build` |
+| Output Directory | `dist` |
+
+### Environment Variables
+
+| Variable | Where to Set | Value |
+|----------|--------------|-------|
+| `VITE_API_URL` | Vercel | Your Render backend URL |
+| `ALLOWED_ORIGINS` | Render | Your Vercel frontend URL + localhost |
+
+### Important URLs
+
+| URL | Purpose |
+|-----|---------|
+| `https://your-app.vercel.app` | Your frontend |
+| `https://your-backend.onrender.com` | Your backend API |
+| `https://your-backend.onrender.com/docs` | API documentation |
+
+---
+
+## 12. Deployment Checklist
 
 ### Before Deployment
 
-- [ ] Backend deployed and running (Railway)
-- [ ] Backend URL noted
+- [ ] Backend deployed and running on Render
+- [ ] Backend URL noted (e.g., `https://xxx.onrender.com`)
 - [ ] Code pushed to GitHub
 - [ ] `npm run build` works locally
 
 ### During Deployment
 
+- [ ] Vercel account created
+- [ ] Project imported from GitHub
 - [ ] Root Directory set to `frontend`
-- [ ] `VITE_API_URL` set to Railway URL
+- [ ] `VITE_API_URL` environment variable added
 - [ ] Build completes without errors
 
 ### After Deployment
 
 - [ ] Site loads at Vercel URL
-- [ ] Preview flow works (enter URL, see card)
-- [ ] No CORS errors in console
-- [ ] Updated Railway ALLOWED_ORIGINS with Vercel URL
+- [ ] Updated Render `ALLOWED_ORIGINS` with Vercel URL
+- [ ] Preview flow works (enter URL → see card)
+- [ ] No CORS errors in browser console
 
 ---
 
-## 15. Summary: Frontend Deployment Flow
-
-```
-1. Code pushed to GitHub
-           ↓
-2. Vercel detects push
-           ↓
-3. Vercel clones repo
-           ↓
-4. Vercel runs: npm install
-           ↓
-5. Vercel injects environment variables
-           ↓
-6. Vercel runs: npm run build
-           ↓
-7. Vite creates dist/ folder
-           ↓
-8. Vercel deploys dist/ to CDN
-           ↓
-9. CDN serves files globally
-           ↓
-10. Your site is live!
-```
-
----
-
-## 16. Self-Check Questions
+## 13. Self-Check Questions
 
 1. **What's the difference between static and dynamic hosting?**
 
@@ -549,33 +559,20 @@ For most cases, same variables work for all.
 
    Answer: A CDN (Content Delivery Network) has servers worldwide. Users get files from the nearest server instead of one far away, reducing latency.
 
-4. **Why do you need to redeploy after changing environment variables?**
+4. **Why do you need to redeploy after changing environment variables on Vercel?**
 
    Answer: Vite embeds variables at build time. The built files have the old values. A rebuild is needed to embed the new values.
 
 5. **What should you check if you see CORS errors after deployment?**
 
-   Answer: Ensure the backend's `ALLOWED_ORIGINS` includes your Vercel URL. It needs the exact URL (with https://, without trailing slash).
-
-6. **What's a preview deployment?**
-
-   Answer: An automatic deployment for non-main branches. Every PR gets its own URL for testing changes before merging.
-
-7. **Why shouldn't you put API keys in VITE_ environment variables?**
-
-   Answer: VITE_ variables are embedded in the frontend JavaScript and visible to anyone. Secrets should only be in the backend.
-
-8. **What happens if the root directory is wrong on Vercel?**
-
-   Answer: Vercel won't find package.json or the build will fail. For our project, it needs to be set to `frontend`.
+   Answer: Ensure the backend's `ALLOWED_ORIGINS` on Render includes your Vercel URL. It needs the exact URL (with https://, without trailing slash).
 
 ---
 
 ## Next Phase
 
-With both frontend and backend deployed, we'll do final testing in **Phase 12: Final Integration & Testing**.
+With both frontend and backend deployed, proceed to **Phase 12: Final Integration & Testing** to verify everything works together.
 
 **Save your URLs:**
-- Backend: `https://your-backend.up.railway.app`
-- Frontend: `https://your-app.vercel.app`
-
+- Backend: `https://________________________.onrender.com`
+- Frontend: `https://________________________.vercel.app`

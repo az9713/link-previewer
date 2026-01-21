@@ -80,19 +80,84 @@ Frontend runs at http://localhost:5173
 
 ## Deployment
 
+### Prerequisites: Push to GitHub
+
+Before deploying, your code must be on GitHub:
+
+**Option 1: Create repo manually**
+1. Go to https://github.com/new
+2. Name: `link-previewer`, Public, don't initialize with README
+3. Run:
+   ```bash
+   git remote add origin https://github.com/YOUR_USERNAME/link-previewer.git
+   git push -u origin main
+   ```
+
+**Option 2: Use GitHub CLI (if installed)**
+```bash
+gh repo create link-previewer --public --source=. --remote=origin --push
+```
+
 ### Backend (Render.com)
 
-1. Create a new Web Service on Render
-2. Connect your GitHub repo
-3. Set Root Directory: `backend`
-4. Build Command: `pip install -r requirements.txt`
-5. Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+1. Create account at https://render.com (use GitHub sign-in)
+2. Click **"New +"** → **"Web Service"**
+3. Connect your GitHub repo
+4. Configure:
+   | Setting | Value |
+   |---------|-------|
+   | Root Directory | `backend` |
+   | Build Command | `pip install -r requirements.txt` |
+   | Start Command | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+   | Instance Type | Free |
+5. Click **"Create Web Service"**
+6. Wait for deployment (2-5 minutes)
+7. Note your URL: `https://your-service.onrender.com`
 
 ### Frontend (Vercel)
 
-1. Import your GitHub repo on Vercel
-2. Set Root Directory: `frontend`
-3. Add environment variable: `VITE_API_URL` = your Render backend URL
+1. Create account at https://vercel.com
+2. Click **"Add New..."** → **"Project"**
+3. Import your GitHub repo
+4. Configure:
+   | Setting | Value |
+   |---------|-------|
+   | Root Directory | `frontend` |
+   | Environment Variable | `VITE_API_URL` = your Render URL |
+5. Click **"Deploy"**
+6. Note your URL: `https://your-app.vercel.app`
+
+### Post-Deployment: Configure CORS
+
+**Critical step!** After frontend deployment:
+1. Go to Render dashboard → your service → **Environment**
+2. Add environment variable:
+   - **Key:** `ALLOWED_ORIGINS`
+   - **Value:** `https://your-app.vercel.app,http://localhost:5173,http://localhost:3000`
+3. Render will auto-redeploy
+
+### Free Tier Notes
+
+**Important: Don't mistake a sleeping service for a broken site!**
+
+- **Render free tier:** Services automatically "sleep" after 15 minutes of no requests
+- **First request after sleep:** Takes **~50 seconds** while the service wakes up (cold start)
+- **Subsequent requests:** Fast (~200ms) until the next idle period
+- **Vercel:** No sleep issues - frontend loads instantly from global CDN
+
+**What you'll see:**
+1. Visit your app after it's been idle for 15+ minutes
+2. Enter a URL and click "Preview"
+3. The spinner appears and seems stuck for ~50 seconds
+4. **This is normal!** The backend is waking up
+5. Once loaded, everything works fast until the next idle period
+
+**Tip:** To keep the service awake, use a free monitoring service like [UptimeRobot](https://uptimerobot.com) to ping your `/health` endpoint every 14 minutes.
+
+For detailed deployment guides, see:
+- [`docs/tutorials/phase-10-deploy-render.md`](docs/tutorials/phase-10-deploy-render.md)
+- [`docs/tutorials/phase-11-deploy-vercel.md`](docs/tutorials/phase-11-deploy-vercel.md)
+- [`docs/deployment-troubleshooting.md`](docs/deployment-troubleshooting.md)
 
 ## Extracted Metadata Fields
 

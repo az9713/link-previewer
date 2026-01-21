@@ -177,6 +177,8 @@ async def safe_fetch(url: str):
 | 500 | Server Error | Their server has a problem |
 | 503 | Unavailable | Server is overloaded |
 
+**Note:** The 429 status code is common when previewing major sites like Yahoo, LinkedIn, and Facebook. These sites actively block bot requests. This is expected behavior, not a bug. See the [Deployment Troubleshooting Guide](../deployment-troubleshooting.md#problem-10-http-429-rate-limiting-from-major-sites) for details.
+
 ---
 
 ## 3. Understanding HTML Structure

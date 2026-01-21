@@ -51,10 +51,10 @@ Before testing, collect your URLs:
 
 | Service | URL |
 |---------|-----|
-| Backend (Railway) | `https://your-backend.up.railway.app` |
+| Backend (Render) | `https://your-backend.onrender.com` |
 | Frontend (Vercel) | `https://your-app.vercel.app` |
-| Backend API Docs | `https://your-backend.up.railway.app/docs` |
-| Backend Health | `https://your-backend.up.railway.app/health` |
+| Backend API Docs | `https://your-backend.onrender.com/docs` |
+| Backend Health | `https://your-backend.onrender.com/health` |
 
 Replace with your actual URLs.
 
@@ -66,7 +66,7 @@ Replace with your actual URLs.
 
 **Command:**
 ```bash
-curl https://your-backend.up.railway.app/health
+curl https://your-backend.onrender.com/health
 ```
 
 **Expected Response:**
@@ -75,7 +75,7 @@ curl https://your-backend.up.railway.app/health
 ```
 
 **If it fails:**
-- Check Railway dashboard for deployment status
+- Check Render dashboard for deployment status
 - Check deployment logs for errors
 - Verify the service is running (not sleeping)
 
@@ -83,7 +83,7 @@ curl https://your-backend.up.railway.app/health
 
 **Command:**
 ```bash
-curl https://your-backend.up.railway.app/
+curl https://your-backend.onrender.com/
 ```
 
 **Expected Response:**
@@ -99,7 +99,7 @@ curl https://your-backend.up.railway.app/
 
 **Open in browser:**
 ```
-https://your-backend.up.railway.app/docs
+https://your-backend.onrender.com/docs
 ```
 
 **Expected:** Interactive API documentation page
@@ -108,7 +108,7 @@ https://your-backend.up.railway.app/docs
 
 **Command:**
 ```bash
-curl -X POST https://your-backend.up.railway.app/unfurl \
+curl -X POST https://your-backend.onrender.com/unfurl \
   -H "Content-Type: application/json" \
   -d '{"url": "https://github.com"}'
 ```
@@ -131,7 +131,7 @@ curl -X POST https://your-backend.up.railway.app/unfurl \
 
 **Command (invalid URL):**
 ```bash
-curl -X POST https://your-backend.up.railway.app/unfurl \
+curl -X POST https://your-backend.onrender.com/unfurl \
   -H "Content-Type: application/json" \
   -d '{"url": "not-a-valid-url"}'
 ```
@@ -140,7 +140,7 @@ curl -X POST https://your-backend.up.railway.app/unfurl \
 
 **Command (unreachable URL):**
 ```bash
-curl -X POST https://your-backend.up.railway.app/unfurl \
+curl -X POST https://your-backend.onrender.com/unfurl \
   -H "Content-Type: application/json" \
   -d '{"url": "https://this-domain-does-not-exist.fake"}'
 ```
@@ -238,7 +238,7 @@ CORS errors are one of the most common production issues:
 
 ```
 Frontend (Vercel): https://app.vercel.app
-Backend (Railway): https://api.up.railway.app
+Backend (Render): https://api.onrender.com
 
 If CORS isn't configured correctly:
 Browser blocks the request entirely!
@@ -268,7 +268,7 @@ Access-Control-Allow-Origin: https://your-app.vercel.app
 For POST requests, browsers send a preflight (OPTIONS) request:
 
 ```bash
-curl -X OPTIONS https://your-backend.up.railway.app/unfurl \
+curl -X OPTIONS https://your-backend.onrender.com/unfurl \
   -H "Origin: https://your-app.vercel.app" \
   -H "Access-Control-Request-Method: POST" \
   -v
@@ -308,7 +308,7 @@ Should be:      https://myapp.vercel.app  ← Use HTTPS
 
 **Issue 4: Forgot to Redeploy**
 
-After changing ALLOWED_ORIGINS on Railway, the service must redeploy for changes to take effect. Railway does this automatically, but wait for it to complete.
+After changing ALLOWED_ORIGINS on Render, the service must redeploy for changes to take effect. Render does this automatically, but wait for it to complete.
 
 ---
 
@@ -355,7 +355,7 @@ After changing ALLOWED_ORIGINS on Railway, the service must redeploy for changes
 
 ```
 Is backend running?
-├── No → Check Railway dashboard
+├── No → Check Render dashboard
 │        → Check deployment logs
 │        → Is service sleeping? (first request wakes it)
 │
@@ -370,9 +370,9 @@ Is backend running?
 
 ### Problem: Backend Returns Errors
 
-**Check Railway Logs:**
+**Check Render Logs:**
 
-1. Go to Railway dashboard
+1. Go to Render dashboard
 2. Click your service
 3. Click "Deployments"
 4. Click latest deployment
@@ -399,7 +399,7 @@ Is backend running?
    - Nothing to do, some sites are slow
    - Could add timeout configuration
 
-3. **Railway region** - Far from user
+3. **Render region** - Far from user
    - Consider different region
 
 ### Problem: Preview Shows No Image
@@ -440,7 +440,7 @@ Is backend running?
 ```markdown
 ## After Every Deployment
 
-### Backend (Railway)
+### Backend (Render)
 - [ ] Deployment completed successfully
 - [ ] `/health` endpoint responds
 - [ ] `/docs` page loads
@@ -483,7 +483,7 @@ For a simple project, just check periodically:
 
 ```bash
 # Add to a cron job or scheduled task
-curl -f https://your-backend.up.railway.app/health || echo "Backend down!"
+curl -f https://your-backend.onrender.com/health || echo "Backend down!"
 curl -f https://your-app.vercel.app || echo "Frontend down!"
 ```
 
@@ -493,8 +493,8 @@ curl -f https://your-app.vercel.app || echo "Frontend down!"
 
 ### URLs Working
 
-- [ ] Backend health: `https://your-backend.up.railway.app/health`
-- [ ] Backend docs: `https://your-backend.up.railway.app/docs`
+- [ ] Backend health: `https://your-backend.onrender.com/health`
+- [ ] Backend docs: `https://your-backend.onrender.com/docs`
 - [ ] Frontend: `https://your-app.vercel.app`
 
 ### Functionality
@@ -533,7 +533,7 @@ curl -f https://your-app.vercel.app || echo "Frontend down!"
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌───────────────┐        ┌───────────────┐                    │
-│  │    Vercel     │        │    Railway    │                    │
+│  │    Vercel     │        │    Render    │                    │
 │  │    (CDN)      │        │   (Server)    │                    │
 │  │               │        │               │                    │
 │  │  ┌─────────┐  │        │  ┌─────────┐  │                    │
@@ -557,7 +557,7 @@ curl -f https://your-app.vercel.app || echo "Frontend down!"
 | Layer | Technology | Platform |
 |-------|------------|----------|
 | Frontend | React + Vite | Vercel |
-| Backend | FastAPI + Python | Railway |
+| Backend | FastAPI + Python | Render |
 | Data | Pydantic Models | - |
 | HTTP | httpx (async) | - |
 | Parsing | BeautifulSoup | - |
@@ -572,7 +572,7 @@ curl -f https://your-app.vercel.app || echo "Frontend down!"
 | `unfurl.py` | URL fetching, HTML parsing, metadata extraction |
 | `models.py` | Request/response validation |
 | Vercel | Hosting, CDN, HTTPS, deployments |
-| Railway | Hosting, environment, deployments |
+| Render | Hosting, environment, deployments |
 
 ---
 
@@ -596,7 +596,7 @@ curl -f https://your-app.vercel.app || echo "Frontend down!"
 
 5. **How do you see backend errors in production?**
 
-   Answer: Go to Railway dashboard → Deployments → Click on deployment → View logs. Errors and print statements appear here.
+   Answer: Go to Render dashboard → Deployments → Click on deployment → View logs. Errors and print statements appear here.
 
 6. **What's the difference between preview card not loading vs not showing an image?**
 
@@ -678,9 +678,9 @@ You've successfully built and deployed a full-stack web application!
 ### Save Your URLs
 
 ```
-Backend API:  https://________________________.up.railway.app
+Backend API:  https://________________________.onrender.com
 Frontend:     https://________________________.vercel.app
-API Docs:     https://________________________.up.railway.app/docs
+API Docs:     https://________________________.onrender.com/docs
 ```
 
 You now have a live, working web application that you built from scratch!
